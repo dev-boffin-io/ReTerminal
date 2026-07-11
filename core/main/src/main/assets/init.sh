@@ -22,7 +22,7 @@ if [ "$#" -eq 0 ]; then
     source /etc/profile
     export PS1='\[\033[01;32m\]\u@reterm\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
     cd $HOME
-    /bin/ash
+    /bin/bash
 else
     exec "$@"
 fi

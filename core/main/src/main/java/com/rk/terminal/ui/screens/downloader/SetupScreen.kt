@@ -46,14 +46,14 @@ fun SetupScreen(
                     it in listOf("arm64-v8a", "armeabi-v7a", "x86_64")
                 } ?: throw RuntimeException("Unsupported CPU architectures: ${abis.joinToString()}")
 
-                val alpineArch = when (abi) {
+                val debianArch = when (abi) {
                     "arm64-v8a" -> "aarch64"
                     "armeabi-v7a" -> "armhf"
                     "x86_64" -> "x86_64"
                     else -> throw RuntimeException("Unsupported ABI: $abi")
                 }
 
-                val assetName = "alpine-$alpineArch.tar.gz.rootfs"
+                val assetName = "debian-$debianArch.tar.gz.rootfs"
                 val outputFile = context.filesDir.child("alpine.tar.gz")
 
                 if (!outputFile.exists() || outputFile.length() == 0L) {

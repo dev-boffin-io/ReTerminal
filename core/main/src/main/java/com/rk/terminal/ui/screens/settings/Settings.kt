@@ -85,7 +85,7 @@ fun Settings(
         onBack = { navController.popBackStack() }
     ) {
         PreferenceGroup(heading = stringResource(strings.default_working_mode)) {
-            WorkingModeOption("Alpine", stringResource(strings.alpine_desc), WorkingMode.ALPINE, selectedWorkingMode) {
+            WorkingModeOption("Debian", stringResource(strings.alpine_desc), WorkingMode.ALPINE, selectedWorkingMode) {
                 selectedWorkingMode = it
                 Settings.working_Mode = it
             }
