@@ -10,6 +10,13 @@ Download the latest APK from the [Releases Section](https://github.com/RohitKush
 - [x] Debian Linux support
 - [x] Configurable Keyboard Shortcuts (Paste, Session Management)
 
+# Known Issues
+- On first boot, you may see `tar: can't link 'usr/bin/perl5.36.0' -> 'usr/bin/perl'` and a similar warning for `gunzip`. This is harmless — Android doesn't allow non-root hardlink creation during rootfs extraction, so these two symlinks are skipped while everything else extracts normally. If you need working `perl` or `gunzip` commands, fix it from inside the terminal:
+  ```
+  apt update
+  apt install --reinstall perl gzip
+  ```
+
 # Screenshots
 <div>
   <img src="/fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" width="32%" />
