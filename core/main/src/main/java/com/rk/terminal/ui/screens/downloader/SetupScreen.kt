@@ -20,6 +20,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+
+// Base URL where the kali-<arch>.tar.gz.rootfs assets are published as GitHub Release
+// files. Update the tag if you publish the rootfs files under a different release.
+private const val ROOTFS_RELEASE_BASE_URL =
+    "https://github.com/dev-boffin-io/ReTerminal/releases/download/rootfs-v1"
 
 @Composable
 fun SetupScreen(
@@ -32,6 +39,7 @@ fun SetupScreen(
     val setupFailedStr = stringResource(strings.setup_failed)
     var isSetupComplete by remember { mutableStateOf(Rootfs.isRootfsInstalled(context)) }
     var error by remember { mutableStateOf<String?>(null) }
+    var progress by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
         if (isSetupComplete) {
@@ -53,17 +61,45 @@ fun SetupScreen(
                     else -> throw RuntimeException("Unsupported ABI: $abi")
                 }
 
-                val assetName = "debian-$debianArch.tar.gz.rootfs"
+                val fileName = "kali-$debianArch.tar.gz.rootfs"
                 val outputFile = context.filesDir.child("alpine.tar.gz")
 
                 if (!outputFile.exists() || outputFile.length() == 0L) {
-                    context.assets.open(assetName).use { input ->
-                        FileOutputStream(outputFile).use { output ->
-                            input.copyTo(output)
+                    val url = URL("$ROOTFS_RELEASE_BASE_URL/$fileName")
+                    val connection = url.openConnection() as HttpURLConnection
+                    connection.connectTimeout = 15000
+                    connection.readTimeout = 15000
+                    connection.instanceFollowRedirects = true
+                    connection.connect()
+
+                    if (connection.responseCode !in 200..299) {
+                        throw RuntimeException("Download failed: HTTP ${connection.responseCode}")
+                    }
+
+                    val totalSize = connection.contentLength
+                    val tempFile = File(outputFile.path + ".part")
+
+                    connection.inputStream.use { input ->
+                        FileOutputStream(tempFile).use { output ->
+                            val buffer = ByteArray(8 * 1024)
+                            var bytesRead: Int
+                            var totalRead = 0L
+                            while (input.read(buffer).also { bytesRead = it } != -1) {
+                                output.write(buffer, 0, bytesRead)
+                                totalRead += bytesRead
+                                if (totalSize > 0) {
+                                    val pct = ((totalRead * 100) / totalSize).toInt()
+                                    withContext(Dispatchers.Main) { progress = pct }
+                                }
+                            }
                         }
                     }
+
+                    if (!tempFile.renameTo(outputFile)) {
+                        throw RuntimeException("Failed to finalize downloaded rootfs")
+                    }
                 }
-                
+
                 withContext(Dispatchers.Main) {
                     Rootfs.isInstalled.value = true
                     isSetupComplete = true
@@ -85,7 +121,13 @@ fun SetupScreen(
                 } else {
                     Text(installingStr, style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(16.dp))
-                    CircularProgressIndicator()
+                    if (progress > 0) {
+                        CircularProgressIndicator(progress = { progress / 100f })
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("$progress%", style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        CircularProgressIndicator()
+                    }
                 }
             }
         } else {

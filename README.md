@@ -7,14 +7,14 @@ Download the latest APK from the [Releases Section](https://github.com/RohitKush
 - [x] Basic Terminal
 - [x] Virtual Keys
 - [x] Multiple Sessions
-- [x] Debian Linux support
+- [x] Kali Linux support
 - [x] Configurable Keyboard Shortcuts (Paste, Session Management)
 
 # Known Issues
-- On first boot, you may see `tar: can't link 'usr/bin/perl5.36.0' -> 'usr/bin/perl'` and a similar warning for `gunzip`. This is harmless — Android doesn't allow non-root hardlink creation during rootfs extraction, so these two symlinks are skipped while everything else extracts normally. If you need working `perl` or `gunzip` commands, fix it from inside the terminal:
+- On first boot, you may see `tar: can't link 'usr/bin/perl5.40.0' -> 'usr/bin/perl'`. This is harmless — Android doesn't allow non-root hardlink creation during rootfs extraction, so this one link is skipped while everything else extracts normally. If you need a working `perl` command, fix it from inside the terminal:
   ```
   apt update
-  apt install --reinstall perl gzip
+  apt install --reinstall perl
   ```
 
 # Screenshots

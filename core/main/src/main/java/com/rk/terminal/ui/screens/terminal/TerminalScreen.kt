@@ -176,7 +176,7 @@ private fun AddSessionDialog(onDismiss: () -> Unit, onCreateSession: (Int) -> Un
     BasicAlertDialog(onDismissRequest = onDismiss) {
         PreferenceGroup {
             SettingsCard(
-                title = { Text("Debian") },
+                title = { Text("Kali") },
                 description = { Text(stringResource(strings.alpine_desc)) },
                 onClick = { onCreateSession(WorkingMode.ALPINE) }
             )
