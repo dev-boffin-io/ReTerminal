@@ -1,9 +1,11 @@
-ALPINE_DIR=$PREFIX/local/alpine
+DISTRO_DIR=${DISTRO_DIR:-alpine}
+DISTRO_ARCHIVE=${DISTRO_ARCHIVE:-alpine.tar.gz}
+ALPINE_DIR=$PREFIX/local/$DISTRO_DIR
 
 mkdir -p $ALPINE_DIR
 
 if [ -z "$(ls -A "$ALPINE_DIR" | grep -vE '^(root|tmp)$')" ]; then
-    tar -xf "$PREFIX/files/alpine.tar.gz" -C "$ALPINE_DIR"
+    tar -xf "$PREFIX/files/$DISTRO_ARCHIVE" -C "$ALPINE_DIR"
 fi
 
 ARGS="--kill-on-exit"
@@ -51,13 +53,13 @@ fi
 ARGS="$ARGS -b $PREFIX"
 ARGS="$ARGS -b /sys"
 
-if [ ! -d "$PREFIX/local/alpine/tmp" ]; then
- mkdir -p "$PREFIX/local/alpine/tmp"
- chmod 1777 "$PREFIX/local/alpine/tmp"
+if [ ! -d "$PREFIX/local/$DISTRO_DIR/tmp" ]; then
+ mkdir -p "$PREFIX/local/$DISTRO_DIR/tmp"
+ chmod 1777 "$PREFIX/local/$DISTRO_DIR/tmp"
 fi
-ARGS="$ARGS -b $PREFIX/local/alpine/tmp:/dev/shm"
+ARGS="$ARGS -b $PREFIX/local/$DISTRO_DIR/tmp:/dev/shm"
 
-ARGS="$ARGS -r $PREFIX/local/alpine"
+ARGS="$ARGS -r $PREFIX/local/$DISTRO_DIR"
 ARGS="$ARGS -0"
 ARGS="$ARGS --link2symlink"
 ARGS="$ARGS --sysvipc"

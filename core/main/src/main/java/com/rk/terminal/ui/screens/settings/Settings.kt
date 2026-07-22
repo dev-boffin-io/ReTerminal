@@ -60,6 +60,7 @@ fun SettingsCard(
 object WorkingMode {
     const val ALPINE = 0
     const val ANDROID = 1
+    const val NETHUNTER = 2
 }
 
 object InputMode {

@@ -7,6 +7,7 @@ import com.rk.libcommons.createFileIfNot
 import com.rk.libcommons.localBinDir
 import com.rk.libcommons.localDir
 import com.rk.libcommons.localLibDir
+import com.rk.libcommons.nethunterHomeDir
 import com.rk.terminal.App.Companion.getTempDir
 import com.rk.terminal.BuildConfig
 import com.rk.terminal.ui.screens.settings.WorkingMode
@@ -36,7 +37,11 @@ object MkSession {
                 "EXTERNAL_STORAGE" to System.getenv("EXTERNAL_STORAGE")
             )
 
-            val workingDir = pendingCommand?.workingDir ?: alpineHomeDir().path
+            val workingDir = pendingCommand?.workingDir ?: if (workingMode == WorkingMode.NETHUNTER) {
+                nethunterHomeDir().path
+            } else {
+                alpineHomeDir().path
+            }
 
             val initFile: File = localBinDir().child("init-host")
             if (initFile.exists().not()) {
@@ -75,6 +80,8 @@ object MkSession {
                 "TMPDIR=${getTempDir(this).absolutePath}",
                 "PROOT_LOADER=${applicationInfo.nativeLibraryDir}/libloader.so",
                 "PROOT=${applicationInfo.nativeLibraryDir}/libproot.so",
+                "DISTRO_DIR=${if (workingMode == WorkingMode.NETHUNTER) "nethunter" else "alpine"}",
+                "DISTRO_ARCHIVE=${if (workingMode == WorkingMode.NETHUNTER) "nethunter.tar.xz" else "alpine.tar.gz"}",
             )
 
             val loader32 = "${applicationInfo.nativeLibraryDir}/libloader32.so"
@@ -102,7 +109,7 @@ object MkSession {
 
             val args: Array<String>
             val shell = if (pendingCommand == null) {
-                args = if (workingMode == WorkingMode.ALPINE) {
+                args = if (workingMode == WorkingMode.ALPINE || workingMode == WorkingMode.NETHUNTER) {
                     arrayOf("-c", initFile.absolutePath)
                 } else {
                     arrayOf()

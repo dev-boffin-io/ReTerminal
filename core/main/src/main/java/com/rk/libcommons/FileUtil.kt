@@ -30,6 +30,22 @@ fun Context.alpineHomeDir(): File {
     }
 }
 
+fun Context.nethunterDir(): File {
+    return localDir().child("nethunter").also {
+        if (!it.exists()) {
+            it.mkdirs()
+        }
+    }
+}
+
+fun Context.nethunterHomeDir(): File {
+    return nethunterDir().child("root").also {
+        if (!it.exists()) {
+            it.mkdirs()
+        }
+    }
+}
+
 fun Context.localBinDir(): File {
     return localDir().child("bin").also {
         if (!it.exists()) {

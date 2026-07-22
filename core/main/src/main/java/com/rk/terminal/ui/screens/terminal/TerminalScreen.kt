@@ -2,12 +2,15 @@ package com.rk.terminal.ui.screens.terminal
 
 import android.content.res.Configuration
 import android.graphics.BitmapFactory
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -33,6 +36,7 @@ import com.rk.resources.strings
 import com.rk.terminal.ui.activities.terminal.MainActivity
 import com.rk.terminal.ui.activities.terminal.MainViewModel
 import com.rk.terminal.ui.components.SetStatusBarTextColor
+import com.rk.terminal.ui.screens.downloader.NethunterInstaller
 import com.rk.terminal.ui.screens.settings.SettingsCard
 import com.rk.terminal.ui.screens.settings.WorkingMode
 import com.rk.terminal.ui.screens.terminal.virtualkeys.VirtualKeysListener
@@ -55,6 +59,9 @@ fun TerminalScreen(
     val configuration = LocalConfiguration.current
     val drawerWidth = (configuration.screenWidthDp * 0.84).dp
     var showAddDialog by remember { mutableStateOf(false) }
+    var isNethunterDownloading by remember { mutableStateOf(false) }
+    var nethunterProgress by remember { mutableIntStateOf(0) }
+    var nethunterError by remember { mutableStateOf<String?>(null) }
 
     val sessionBinder = mainViewModel.sessionBinder
 
@@ -87,12 +94,51 @@ fun TerminalScreen(
         AddSessionDialog(
             onDismiss = { showAddDialog = false },
             onCreateSession = { mode ->
-                val sessionId = generateUniqueSessionId(sessionBinder.getService().sessionList.keys.toList())
-                val terminal = terminalViewModel.terminalView ?: return@AddSessionDialog
-                val client = TerminalBackEnd(terminal, mainActivity)
-                sessionBinder.createSession(sessionId, client, mode)
-                terminalViewModel.changeSession(context, sessionBinder, sessionId)
-                showAddDialog = false
+                fun proceedToCreateSession() {
+                    val sessionId = generateUniqueSessionId(sessionBinder.getService().sessionList.keys.toList())
+                    val terminal = terminalViewModel.terminalView ?: return
+                    val client = TerminalBackEnd(terminal, mainActivity)
+                    sessionBinder.createSession(sessionId, client, mode)
+                    terminalViewModel.changeSession(context, sessionBinder, sessionId)
+                    showAddDialog = false
+                }
+
+                if (mode == WorkingMode.NETHUNTER && !Rootfs.isNethunterRootfsInstalled(context)) {
+                    showAddDialog = false
+                    isNethunterDownloading = true
+                    nethunterError = null
+                    nethunterProgress = 0
+                    scope.launch {
+                        withContext(Dispatchers.IO) {
+                            try {
+                                NethunterInstaller.downloadIfNeeded(context) { pct ->
+                                    nethunterProgress = pct
+                                }
+                                withContext(Dispatchers.Main) {
+                                    isNethunterDownloading = false
+                                    proceedToCreateSession()
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    nethunterError = e.message ?: e.javaClass.simpleName
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    proceedToCreateSession()
+                }
+            }
+        )
+    }
+
+    if (isNethunterDownloading) {
+        NethunterDownloadDialog(
+            progress = nethunterProgress,
+            error = nethunterError,
+            onDismiss = {
+                isNethunterDownloading = false
+                nethunterError = null
             }
         )
     }
@@ -173,6 +219,7 @@ private fun BackgroundImage(viewModel: TerminalViewModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddSessionDialog(onDismiss: () -> Unit, onCreateSession: (Int) -> Unit) {
+    val isArm64 = "arm64-v8a" in Build.SUPPORTED_ABIS
     BasicAlertDialog(onDismissRequest = onDismiss) {
         PreferenceGroup {
             SettingsCard(
@@ -185,6 +232,42 @@ private fun AddSessionDialog(onDismiss: () -> Unit, onCreateSession: (Int) -> Un
                 description = { Text(stringResource(strings.android_desc)) },
                 onClick = { onCreateSession(WorkingMode.ANDROID) }
             )
+            if (isArm64) {
+                SettingsCard(
+                    title = { Text("NetHunter") },
+                    description = { Text("Kali NetHunter (full, arm64 only)") },
+                    onClick = { onCreateSession(WorkingMode.NETHUNTER) }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NethunterDownloadDialog(progress: Int, error: String?, onDismiss: () -> Unit) {
+    BasicAlertDialog(onDismissRequest = { if (error != null) onDismiss() }) {
+        Surface(shape = MaterialTheme.shapes.large) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (error != null) {
+                    Text("NetHunter download failed: $error", color = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    TextButton(onClick = onDismiss) { Text("Close") }
+                } else {
+                    Text("Downloading NetHunter rootfs\u2026")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    if (progress > 0) {
+                        CircularProgressIndicator(progress = { progress / 100f })
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("$progress%")
+                    } else {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
         }
     }
 }
