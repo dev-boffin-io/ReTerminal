@@ -11,10 +11,21 @@ Download the latest APK from the [Releases Section](https://github.com/RohitKush
 - [x] Configurable Keyboard Shortcuts (Paste, Session Management)
 
 # Known Issues
-- On first boot, you may see `tar: can't link 'usr/bin/perl5.40.0' -> 'usr/bin/perl'`. This is harmless — Android doesn't allow non-root hardlink creation during rootfs extraction, so this one link is skipped while everything else extracts normally. If you need a working `perl` command, fix it from inside the terminal:
+- On first boot on Kali rootfs, you may see:
   ```
+  tar: can't link 'usr/bin/perl' -> 'usr/bin/perl5.40.1': Permission denied
+  ```
+  This happens because `perl5.40.1` and `perlthanks` ship with the immutable
+  attribute (`+i`) set, which blocks symlink creation on extraction and can
+  leave `/usr/bin/perl` unlinked.
+
+  Full root-cause analysis and step-by-step fix: [kali-perl-fix.md](./kali-perl-fix.md)
+
+  Quick fix from inside the terminal:
+  ```bash
+  chattr -i /usr/bin/perl5.40.1 /usr/bin/perlthanks
   apt update
-  apt install --reinstall perl
+  apt install --reinstall perl perl-base perl-modules-5.40
   ```
 
 # Screenshots
